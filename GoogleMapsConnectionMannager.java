@@ -1,7 +1,8 @@
 package googlemaps;
 
-import java.util.Iterator;
 import java.util.List;
+
+import org.h2.util.StringUtils;
 
 import play.libs.WS;
 import play.libs.WS.HttpResponse;
@@ -19,12 +20,17 @@ public class GoogleMapsConnectionMannager {
 	private static final String HOST	= "http://maps.googleapis.com";
 	private static final String GEOCODE = "/maps/api/geocode/json";
 	private List<GeocodeResponse> geocodes;
+	private String latlng;
 	
 	public GoogleMapsConnectionMannager() {
 	}	
 	
 	public List<GeocodeResponse> getGeocode(String address, String components, String latlng) {
 				
+		if (!StringUtils.isNullOrEmpty(this.latlng) && latlng.equals(this.latlng))
+			return geocodes;
+		
+		this.latlng = latlng;
 		return getGeocodeRequest(address, components, latlng);
 	}
 
@@ -32,18 +38,35 @@ public class GoogleMapsConnectionMannager {
 		if (geocodes == null || geocodes.size() == 0)
 			return "";
 		
-		for (Iterator<GeocodeResponse> iterator = geocodes.iterator(); iterator.hasNext();) {
-			GeocodeResponse currentGeocode = iterator.next();
+		for (GeocodeResponse currentGeocode : geocodes) {
 			
-			for (Iterator<AddressComponentResponse> iterator2 = currentGeocode.getAddress_components().iterator(); iterator2.hasNext();) {
-				AddressComponentResponse currentAddressComponent = iterator2.next();	
+			for (AddressComponentResponse currentAddressComponent : currentGeocode.getAddress_components()) {
 				
-				for(Iterator<String> iterator3 = currentAddressComponent.getTypes().iterator(); iterator3.hasNext();) {
-					String type = iterator3.next();
-					
+				for(String type : currentAddressComponent.getTypes()) {
+
 					if ("locality".equals(type))
 						
 						return currentAddressComponent.getShort_name();
+				}
+			}
+		}
+		
+		return "";
+	}
+
+	public String getCountryFromTheFirstGeocode() {
+		if (geocodes == null || geocodes.size() == 0)
+			return "";
+		
+		for (GeocodeResponse currentGeocode : geocodes) {
+			
+			for (AddressComponentResponse currentAddressComponent : currentGeocode.getAddress_components()) {
+				
+				for(String type : currentAddressComponent.getTypes()) {
+
+					if ("country".equals(type))
+						
+						return currentAddressComponent.getLong_name();
 				}
 			}
 		}
